@@ -54,7 +54,7 @@
 40        android:debuggable="true"
 41        android:extractNativeLibs="true"
 42        android:icon="@mipmap/ic_launcher"
-43        android:label="my_app" >
+43        android:label="协律" >
 44        <activity
 45            android:name="com.example.my_app.MainActivity"
 46            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
