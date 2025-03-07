@@ -6,6 +6,9 @@
       <excludeFolder url="file://$MODULE_DIR$/frontend/my_app/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/my_app/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/my_app/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/my_app/android/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/my_app/android/app/.cxx" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/my_app/macos/Flutter/ephemeral" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
