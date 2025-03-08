@@ -3,6 +3,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'songlist.dart';
 import 'profile.dart';
+import 'httpreq.dart';
 
 class Discovery extends StatefulWidget {
   const Discovery({super.key});
@@ -22,13 +23,30 @@ class _DiscoveryState extends State<Discovery> {
   }
 
   void _playMusic() async {
-    await _player.play(UrlSource('https://static.lancelotshire.me/music/HOYO-MiX%20-%20Da%20Capo.mp3')); // 本地音频
+    await _player.play(
+      UrlSource(
+        'https://static.lancelotshire.me/music/HOYO-MiX%20-%20Da%20Capo.mp3',
+      ),
+    ); // 本地音频
   }
 
   Widget _buildBody(int index) {
     switch (index) {
       case 0:
-        return Center(child: Text('这是发现页'));
+        return Center(
+          child: FutureBuilder(
+            future: HttpReq().test(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Center(child: Text(snapshot.data['message']));
+              } else if (snapshot.hasError) {
+                return const Center(child: Text("错误！请重试！"));
+              } else {
+                return const Center(child: CircularProgressIndicator());
+              }
+            },
+          ),
+        );
 
       case 1:
         return Center(child: Text('这是歌单页'));
