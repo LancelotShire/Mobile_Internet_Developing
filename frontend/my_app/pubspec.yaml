@@ -94,6 +94,6 @@ flutter:
   fonts:
     - family: CustomFont
       fonts:
-        - asset: assets\fonts\LXGWWenKai-Regular.ttf
+        - asset: assets\fonts\OPPOSans-Regular.ttf
   assets:
     - assets/image/

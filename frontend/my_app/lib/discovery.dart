@@ -24,9 +24,7 @@ class _DiscoveryState extends State<Discovery> {
 
   void _playMusic() async {
     await _player.play(
-      UrlSource(
-        'https://static.lancelotshire.me/music/HOYO-MiX%20-%20Da%20Capo.mp3',
-      ),
+      UrlSource('https://static.lancelotshire.me/music/HOYO-MiX-DaCapo.mp3'),
     ); // 本地音频
   }
 
@@ -68,6 +66,7 @@ class _DiscoveryState extends State<Discovery> {
             return IconButton(
               icon: CircleAvatar(
                 backgroundImage: AssetImage('assets/image/DaCapo.jpeg'),
+                maxRadius: 30,
               ),
               onPressed: () {
                 Scaffold.of(context).openEndDrawer();
@@ -76,8 +75,33 @@ class _DiscoveryState extends State<Discovery> {
           },
         ),
       ],
-      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      title: Text(text[index], style: TextStyle(fontWeight: FontWeight.w600)),
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      toolbarHeight: 80,
+      title: index == 0 ? Row(
+        children: [
+          Text(
+            text[index],
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 28),
+          ),
+          SizedBox(
+            width: 25,
+          ),
+          Expanded(
+            child: SearchBar(
+              leading: const Icon(Icons.search),
+              elevation: WidgetStateProperty.all(0),
+              onChanged: (value) {
+                // 处理搜索文本变化的逻辑
+                print('Search text: $value');
+              },
+            ),
+          ),
+        ],
+      ) : Text(
+        text[index],
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 28),
+      ),
     );
   }
 
@@ -87,7 +111,8 @@ class _DiscoveryState extends State<Discovery> {
       width: MediaQuery.of(context).size.width * 0.85,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('正在播放', style: TextStyle(fontWeight: FontWeight.w600)),
+          title: Text('正在播放', style: TextStyle(fontWeight: FontWeight.w600,fontSize: 30)),
+          toolbarHeight: 80,
         ),
         body: Stack(
           children: <Widget>[
@@ -100,7 +125,7 @@ class _DiscoveryState extends State<Discovery> {
                     width: MediaQuery.of(context).size.width * 0.75,
                     height: MediaQuery.of(context).size.width * 0.75,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(25),
                       child: Image.asset(
                         'assets/image/DaCapo.jpeg', // 用实际的图片URL替换
                         fit: BoxFit.cover,
