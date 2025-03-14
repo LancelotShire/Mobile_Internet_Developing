@@ -16,6 +16,16 @@ class HttpReq {
     }
   }
 
+  Future getInfo(String Id) async {
+    var url = Uri.parse('$URL/getInfo/$Id');
+    var res = await http.get(url);
 
+    if (res.statusCode == 200) {
+      var body = json.decode(utf8.decode(res.body.runes.toList()));
+      return body;
+    } else {
+      return null;
+    }
+  }
 
 }

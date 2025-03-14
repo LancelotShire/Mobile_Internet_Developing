@@ -1,9 +1,41 @@
-import 'dart:ui';
+import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'songlist.dart';
-import 'profile.dart';
+import 'package:my_app/tools.dart';
 import 'httpreq.dart';
+import 'searching.dart';
+import 'isplaying.dart';
+
+String songName = "暂无播放";
+String singerName = "";
+String pictureURL =
+    "http://p2.music.126.net/eDuh5s7BkMZDztreXYpvrA==/18225504742439648.jpg?param=177y177";
+String songURL = "";
+String songObjectId = "";
+List currentSongList = [];
+int currentPlayStatus = 0;
+String nextSong = "";
+bool isLiked = false;
+List<dynamic> lyrics = [];
+String formerLyric = "";
+String currentLyric = "";
+String nextLyric = "";
+double progress = 0;
+int isPlaying = 0;
+Duration currentPosition = Duration.zero;
+Duration totalDuration = Duration.zero;
+final AudioPlayer audioPlayer = AudioPlayer();
+
+Future<void> seekAudio(double value) async {
+  final position = Duration(milliseconds: value.toInt());
+  await audioPlayer.seek(position);
+}
+
+String formatDuration(Duration duration) {
+  String minutes = duration.inMinutes.toString().padLeft(2, '0');
+  String seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+  return "$minutes:$seconds";
+}
 
 class Discovery extends StatefulWidget {
   const Discovery({super.key});
@@ -13,8 +45,11 @@ class Discovery extends StatefulWidget {
 }
 
 class _DiscoveryState extends State<Discovery> {
+  GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   int _selectedIndex = 0;
-  final AudioPlayer _player = AudioPlayer();
+  late StreamSubscription<PlayerState>? _playerStateSubscription;
+  late StreamSubscription<Duration>? _positionChangedSubscription;
+  late StreamSubscription<void>? _playerCompleteSubscription;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -22,10 +57,71 @@ class _DiscoveryState extends State<Discovery> {
     });
   }
 
-  void _playMusic() async {
-    await _player.play(
-      UrlSource('https://static.lancelotshire.me/music/HOYO-MiX-DaCapo.mp3'),
-    ); // 本地音频
+  @override
+  void initState() {
+    super.initState();
+
+    // 监听播放状态变化
+    _playerStateSubscription = audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (state == PlayerState.playing) {
+        setState(() {
+          isPlaying = 1;
+        });
+      }
+    });
+
+    // 监听音乐播放进度
+    _positionChangedSubscription = audioPlayer.onPositionChanged.listen((position) {
+      setState(() {
+        currentPosition = position;
+        if (currentPosition.inMilliseconds > 0 &&
+            totalDuration.inMilliseconds > 0) {
+          double progress1 =
+              (currentPosition.inSeconds * 100) / totalDuration.inSeconds;
+          progress = progress1;
+          List lyr = Tools().lyricsAnalyzer(currentPosition, lyrics);
+          formerLyric = lyr[0];
+          currentLyric = lyr[1];
+          nextLyric = lyr[2];
+        }
+      });
+    });
+
+    // 监听播放完成事件
+    _playerCompleteSubscription = audioPlayer.onPlayerComplete.listen((event) {
+      setState(() {
+        isPlaying = 0;
+        progress = 0;
+        currentPosition = Duration(microseconds: 0);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    // 取消播放状态变化的订阅
+    _playerStateSubscription?.cancel();
+    // 取消音乐播放进度的订阅
+    _positionChangedSubscription?.cancel();
+    // 取消播放完成事件的订阅
+    _playerCompleteSubscription?.cancel();
+
+    super.dispose();
+  }
+
+  void simplePlayMusic(String Id) async {
+    var response = await HttpReq().getInfo(Id);
+    await audioPlayer.play(UrlSource(response['url']));
+    setState(() async {
+      totalDuration = (await audioPlayer.getDuration())!;
+      pictureURL = response['picture'];
+      songName = response['song_name'];
+      singerName = response['singer'];
+      songURL = response['url'];
+      songObjectId = response['_id'];
+      lyrics = response['lyrics'];
+    });
+    isPlaying = 1;
   }
 
   Widget _buildBody(int index) {
@@ -50,68 +146,155 @@ class _DiscoveryState extends State<Discovery> {
         return Center(child: Text('这是歌单页'));
 
       case 2:
-        return Center(child: Text('这是我的页'));
+        return Center(
+          child: ElevatedButton(
+            onPressed: () {
+              simplePlayMusic("67d3ef835507910649d68893");
+            },
+            child: Text("点我播放青空"),
+          ),
+        );
 
       default:
         return const Center(child: Text('Unknown Page!'));
     }
   }
 
-  AppBar _buildAppBar(int index) {
-    List<dynamic> text = ['发现', '歌单', '我的'];
-    return AppBar(
-      actions: <Widget>[
-        Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: CircleAvatar(
-                backgroundImage: AssetImage('assets/image/DaCapo.jpeg'),
-                maxRadius: 30,
-              ),
-              onPressed: () {
-                Scaffold.of(context).openEndDrawer();
+  Builder _buildActionButton() {
+    return Builder(
+      builder: (BuildContext context) {
+        return IconButton(
+          icon: ClipOval(
+            child: Image.network(
+              pictureURL,
+              fit: BoxFit.cover,
+              loadingBuilder: (
+                BuildContext context,
+                Widget child,
+                ImageChunkEvent? loadingProgress,
+              ) {
+                if (loadingProgress == null) {
+                  return child; // 图片加载完成时直接显示
+                } else {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value:
+                          loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  (loadingProgress.expectedTotalBytes ?? 1)
+                              : null,
+                    ),
+                  );
+                }
               },
-            );
-          },
-        ),
-      ],
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      toolbarHeight: 80,
-      title: index == 0 ? Row(
-        children: [
-          Text(
-            text[index],
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 28),
-          ),
-          SizedBox(
-            width: 25,
-          ),
-          Expanded(
-            child: SearchBar(
-              leading: const Icon(Icons.search),
-              elevation: WidgetStateProperty.all(0),
-              onChanged: (value) {
-                // 处理搜索文本变化的逻辑
-                print('Search text: $value');
+              errorBuilder: (
+                BuildContext context,
+                Object error,
+                StackTrace? stackTrace,
+              ) {
+                return Icon(Icons.error); // 加载失败时显示错误图标
               },
             ),
           ),
-        ],
-      ) : Text(
-        text[index],
-        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 28),
-      ),
+          onPressed: () {
+            Scaffold.of(context).openEndDrawer();
+          },
+        );
+      },
     );
   }
 
+  AppBar _buildAppBar(int index) {
+    List<dynamic> text = ['发现', '歌单', '我的'];
+    return AppBar(
+      actions: [_buildActionButton()],
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      toolbarHeight: 80,
+      title:
+          index == 0
+              ? Row(
+                children: [
+                  Text(
+                    text[index],
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 28),
+                  ),
+                  SizedBox(width: 25),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SearchingPage(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 200, // 设置矩形条宽度
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300], // 设置灰色背景颜色
+                          borderRadius: BorderRadius.circular(25), // 设置圆角
+                        ), // 设置矩形条高度
+                        child: Row(
+                          children: [
+                            SizedBox(width: 10),
+                            Icon(Icons.search), // 添加搜索放大镜图标
+                            SizedBox(width: 10),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+              : Text(
+                text[index],
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 28),
+              ),
+    );
+  }
+
+  IconButton _buildButton(int index) {
+    return index == 0
+        ? IconButton(
+          onPressed: () {
+            setState(() {
+              if (progress == 0) {
+                simplePlayMusic('67d4114d07125eb8445aa9cd');
+              } else {
+                audioPlayer.resume();
+                isPlaying = 1;
+              }
+            });
+          },
+          iconSize: 75.0,
+          color: Colors.grey[800],
+          icon: Icon(Icons.play_circle_fill),
+        )
+        : IconButton(
+          onPressed: () {
+            setState(() {
+              audioPlayer.pause();
+              isPlaying = 0;
+            });
+          },
+          icon: Icon(Icons.pause),
+          iconSize: 75.0,
+          color: Colors.grey[800],
+        );
+  }
+
   Drawer _buildDrawer() {
-    double _progress = 20;
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.85,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('正在播放', style: TextStyle(fontWeight: FontWeight.w600,fontSize: 30)),
+          title: Text(
+            '正在播放',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 30),
+          ),
           toolbarHeight: 80,
         ),
         body: Stack(
@@ -126,9 +309,38 @@ class _DiscoveryState extends State<Discovery> {
                     height: MediaQuery.of(context).size.width * 0.75,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),
-                      child: Image.asset(
-                        'assets/image/DaCapo.jpeg', // 用实际的图片URL替换
+                      child: Image.network(
+                        pictureURL,
                         fit: BoxFit.cover,
+                        loadingBuilder: (
+                            BuildContext context,
+                            Widget child,
+                            ImageChunkEvent? loadingProgress,
+                            ) {
+                          if (loadingProgress == null) {
+                            return child; // 图片加载完成时直接显示
+                          } else {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value:
+                                loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress
+                                    .cumulativeBytesLoaded /
+                                    (loadingProgress
+                                        .expectedTotalBytes ??
+                                        1)
+                                    : null,
+                              ),
+                            );
+                          }
+                        },
+                        errorBuilder: (
+                            BuildContext context,
+                            Object error,
+                            StackTrace? stackTrace,
+                            ) {
+                          return Icon(Icons.error); // 加载失败时显示错误图标
+                        },
                       ),
                     ),
                   ),
@@ -140,28 +352,29 @@ class _DiscoveryState extends State<Discovery> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Da Capo',
+                        songName,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'HOYO-MiX',
+                        singerName,
                         style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                       ),
                       SizedBox(
-                        height: 210,
+                        height: 180,
                         child: Center(
                           child: Column(
                             children: [
                               SizedBox(
-                                height: 70,
+                                height: 60,
                                 child: Center(
                                   child: Text(
-                                    '这是已播放歌词',
+                                    formerLyric,
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 17,
                                       color: Colors.grey[500],
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -169,12 +382,13 @@ class _DiscoveryState extends State<Discovery> {
                                 ),
                               ),
                               SizedBox(
-                                height: 70,
+                                height: 60,
                                 child: Center(
                                   child: Text(
-                                    '这是正在播放的歌词',
+                                    currentLyric,
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      fontSize: 25,
+                                      fontSize: 20,
                                       color: Colors.grey[700],
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -182,12 +396,13 @@ class _DiscoveryState extends State<Discovery> {
                                 ),
                               ),
                               SizedBox(
-                                height: 70,
+                                height: 60,
                                 child: Center(
                                   child: Text(
-                                    '这是未播放歌词',
+                                    nextLyric,
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 17,
                                       color: Colors.grey[500],
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -203,18 +418,21 @@ class _DiscoveryState extends State<Discovery> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Slider(
-                              value: _progress,
+                              value: progress,
                               min: 0.0,
                               max: 100.0,
                               divisions: 100,
                               onChanged: (value) {
                                 setState(() {
-                                  _progress = value;
+                                  progress = value;
                                 });
+                                seekAudio(
+                                  (value * totalDuration.inMilliseconds) / 100,
+                                );
                               },
-                              // thumbColor: Colors.lightBlue,
-                              // activeColor: Colors.lightBlue,
-                              // inactiveColor: Colors.grey,
+                              thumbColor: Color(0xAA4095E5),
+                              activeColor: Color(0xAA4095E5),
+                              inactiveColor: Colors.grey[400],
                             ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -224,7 +442,7 @@ class _DiscoveryState extends State<Discovery> {
                                     horizontal: 27.0,
                                   ), // 左右各添加16像素的内边距
                                   child: Text(
-                                    '00:00',
+                                    formatDuration(currentPosition),
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Colors.grey,
@@ -236,7 +454,7 @@ class _DiscoveryState extends State<Discovery> {
                                     horizontal: 27.0,
                                   ), // 左右各添加16像素的内边距
                                   child: Text(
-                                    '03:45',
+                                    formatDuration(totalDuration),
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Colors.grey,
@@ -251,28 +469,27 @@ class _DiscoveryState extends State<Discovery> {
                               ),
                               child: Row(
                                 mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                MainAxisAlignment.spaceBetween,
                                 children: [
                                   IconButton(
-                                    onPressed: () async {
-                                      await _player.pause();
+                                    onPressed: () {
+                                      simplePlayMusic(
+                                        '67d4114d07125eb8445aa9cf',
+                                      );
                                     },
                                     iconSize: 50.0,
-                                    color: Colors.blue,
+                                    color: Colors.grey[700],
                                     icon: Icon(Icons.skip_previous),
                                   ),
+                                  _buildButton(isPlaying),
                                   IconButton(
                                     onPressed: () {
-                                      _playMusic();
+                                      simplePlayMusic(
+                                        "67d4114d07125eb8445aa9d1",
+                                      );
                                     },
-                                    iconSize: 75.0,
-                                    color: Colors.lightBlue,
-                                    icon: Icon(Icons.play_circle_fill),
-                                  ),
-                                  IconButton(
-                                    onPressed: () {},
                                     iconSize: 50.0,
-                                    color: Colors.blue,
+                                    color: Colors.grey[700],
                                     icon: Icon(Icons.skip_next),
                                   ),
                                 ],
@@ -295,6 +512,7 @@ class _DiscoveryState extends State<Discovery> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: scaffoldKey,
       appBar: _buildAppBar(_selectedIndex),
       body: _buildBody(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
