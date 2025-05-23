@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'discovery.dart';
+import 'loginPage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
+
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         sliderTheme: SliderThemeData(
           // 自定义滑块的属性
@@ -44,7 +46,7 @@ class MyApp extends StatelessWidget {
         ),
         fontFamily: 'CustomFont',
       ),
-      home: const Discovery(),
+      home: LoginPage(),
     );
   }
 }

@@ -9,6 +9,7 @@ collection = db['info']
 information = [
     {
         "song_name": "Da Capo",
+        "translation":"",
         "singer": "HOYO-MiX",
         "album":"Da Capo",
         "description": "《崩坏三》手游终章《毕业旅行》动画短片印象曲",
@@ -17,6 +18,7 @@ information = [
     },
     {
         "song_name": "Moon Halo",
+        "translation":"",
         "singer": "茶理理理子、TetraCalyx、hanser",
         "album":"Moon Halo",
         "description": "《崩坏三》手游《薪炎永燃》动画短片印象曲",
@@ -25,6 +27,7 @@ information = [
     },
     {
         "song_name": "Lemon",
+        "translation":"",
         "singer": "米津玄師",
         "album":"Lemon",
         "description": "《非自然死亡》电视剧主题曲",
@@ -33,14 +36,16 @@ information = [
     },
     {
         "song_name": "LOSER",
+        "translation":"",
         "singer": "米津玄師",
         "album":"ナンバーナイン",
-        "description": "https://static.lancelotshire.me/album_picture/NumberNine.jpg",
+        "description": "",
         "url": "https://static.lancelotshire.me/music/LOSER-%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB.mp3",
         "picture": "https://static.lancelotshire.me/album_picture/NumberNine.jpg",
     },
     {
         "song_name": "KICK BACK",
+        "translation":"",
         "singer": "米津玄師",
         "album":"KICK BACK",
         "description": "《链锯人》动画OP",
@@ -58,6 +63,7 @@ information = [
     },
     {
         "song_name": "死神",
+        "translation":"",
         "singer": "米津玄師",
         "album":"Pale Blue",
         "description": "",
@@ -66,6 +72,7 @@ information = [
     },
     {
         "song_name": "青空",
+        "translation":"",
         "singer": "Candy_Wind",
         "album":"雨之翼",
         "description": "",

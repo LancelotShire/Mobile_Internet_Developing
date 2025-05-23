@@ -2,15 +2,13 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:my_app/searchresult.dart';
 import 'package:my_app/tools.dart';
 import 'discovery.dart';
 import 'httpreq.dart';
 
 class SearchingPage extends StatefulWidget {
-
-  const SearchingPage({
-    super.key,
-  });
+  const SearchingPage({super.key});
 
   @override
   State<StatefulWidget> createState() => _SearchingPageState();
@@ -20,13 +18,24 @@ class _SearchingPageState extends State<SearchingPage> {
   late StreamSubscription<PlayerState>? _playerStateSubscription;
   late StreamSubscription<Duration>? _positionChangedSubscription;
   late StreamSubscription<void>? _playerCompleteSubscription;
+  late FocusNode _searchFocusNode;
+  final TextEditingController _searchController = TextEditingController();
+  late Future<dynamic> _future;
 
   @override
   void initState() {
     super.initState();
+    _searchFocusNode = FocusNode();
+    _future = HttpReq().getSearchHistory();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusScope.of(context).requestFocus(_searchFocusNode);
+    });
 
     // 监听播放状态变化
-    _playerStateSubscription = audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+    _playerStateSubscription = audioPlayer.onPlayerStateChanged.listen((
+      PlayerState state,
+    ) {
       if (state == PlayerState.playing) {
         setState(() {
           isPlaying = 1;
@@ -35,7 +44,9 @@ class _SearchingPageState extends State<SearchingPage> {
     });
 
     // 监听音乐播放进度
-    _positionChangedSubscription = audioPlayer.onPositionChanged.listen((position) {
+    _positionChangedSubscription = audioPlayer.onPositionChanged.listen((
+      position,
+    ) {
       setState(() {
         currentPosition = position;
         if (currentPosition.inMilliseconds > 0 &&
@@ -82,29 +93,29 @@ class _SearchingPageState extends State<SearchingPage> {
               pictureURL,
               fit: BoxFit.cover,
               loadingBuilder: (
-                  BuildContext context,
-                  Widget child,
-                  ImageChunkEvent? loadingProgress,
-                  ) {
+                BuildContext context,
+                Widget child,
+                ImageChunkEvent? loadingProgress,
+              ) {
                 if (loadingProgress == null) {
                   return child; // 图片加载完成时直接显示
                 } else {
                   return Center(
                     child: CircularProgressIndicator(
                       value:
-                      loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                          (loadingProgress.expectedTotalBytes ?? 1)
-                          : null,
+                          loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  (loadingProgress.expectedTotalBytes ?? 1)
+                              : null,
                     ),
                   );
                 }
               },
               errorBuilder: (
-                  BuildContext context,
-                  Object error,
-                  StackTrace? stackTrace,
-                  ) {
+                BuildContext context,
+                Object error,
+                StackTrace? stackTrace,
+              ) {
                 return Icon(Icons.error); // 加载失败时显示错误图标
               },
             ),
@@ -120,31 +131,31 @@ class _SearchingPageState extends State<SearchingPage> {
   IconButton _buildButton(int index) {
     return index == 0
         ? IconButton(
-      onPressed: () {
-        setState(() {
-          if (progress == 0) {
-            simplePlayMusic('67d4114d07125eb8445aa9cd');
-          } else {
-            audioPlayer.resume();
-            isPlaying = 1;
-          }
-        });
-      },
-      iconSize: 75.0,
-      color: Colors.grey[800],
-      icon: Icon(Icons.play_circle_fill),
-    )
+          onPressed: () {
+            setState(() {
+              if (progress == 0) {
+                simplePlayMusic('67d4114d07125eb8445aa9cd');
+              } else {
+                audioPlayer.resume();
+                isPlaying = 1;
+              }
+            });
+          },
+          iconSize: 75.0,
+          color: Colors.grey[800],
+          icon: Icon(Icons.play_circle_fill),
+        )
         : IconButton(
-      onPressed: () {
-        setState(() {
-          audioPlayer.pause();
-          isPlaying = 0;
-        });
-      },
-      icon: Icon(Icons.pause),
-      iconSize: 75.0,
-      color: Colors.grey[800],
-    );
+          onPressed: () {
+            setState(() {
+              audioPlayer.pause();
+              isPlaying = 0;
+            });
+          },
+          icon: Icon(Icons.pause),
+          iconSize: 75.0,
+          color: Colors.grey[800],
+        );
   }
 
   void simplePlayMusic(String Id) async {
@@ -170,10 +181,28 @@ class _SearchingPageState extends State<SearchingPage> {
       foregroundColor: Colors.black,
       title: Row(
         children: [
+          SizedBox(width: 20),
           Expanded(
             child: SearchBar(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
               elevation: WidgetStateProperty.all(0),
               leading: Icon(Icons.search),
+              onSubmitted: (value) {
+                if (_searchController.text != "") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => SearchResult(
+                            searchText: _searchController.text,
+                            updateSearchHistory: _updateSearchHistory,
+                          ),
+                    ),
+                  );
+                  HttpReq().addSearchHistory(_searchController.text);
+                }
+              },
             ),
           ),
         ],
@@ -185,6 +214,7 @@ class _SearchingPageState extends State<SearchingPage> {
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.85,
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: Text(
@@ -209,32 +239,32 @@ class _SearchingPageState extends State<SearchingPage> {
                         pictureURL,
                         fit: BoxFit.cover,
                         loadingBuilder: (
-                            BuildContext context,
-                            Widget child,
-                            ImageChunkEvent? loadingProgress,
-                            ) {
+                          BuildContext context,
+                          Widget child,
+                          ImageChunkEvent? loadingProgress,
+                        ) {
                           if (loadingProgress == null) {
                             return child; // 图片加载完成时直接显示
                           } else {
                             return Center(
                               child: CircularProgressIndicator(
                                 value:
-                                loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress
-                                    .cumulativeBytesLoaded /
-                                    (loadingProgress
-                                        .expectedTotalBytes ??
-                                        1)
-                                    : null,
+                                    loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            (loadingProgress
+                                                    .expectedTotalBytes ??
+                                                1)
+                                        : null,
                               ),
                             );
                           }
                         },
                         errorBuilder: (
-                            BuildContext context,
-                            Object error,
-                            StackTrace? stackTrace,
-                            ) {
+                          BuildContext context,
+                          Object error,
+                          StackTrace? stackTrace,
+                        ) {
                           return Icon(Icons.error); // 加载失败时显示错误图标
                         },
                       ),
@@ -365,13 +395,17 @@ class _SearchingPageState extends State<SearchingPage> {
                               ),
                               child: Row(
                                 mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   IconButton(
                                     onPressed: () {
-                                      simplePlayMusic(
-                                        '67d4114d07125eb8445aa9cf',
-                                      );
+                                      // simplePlayMusic(
+                                      //   '67d4114d07125eb8445aa9cf',
+                                      // );
+                                      if(currentSongList != []){
+                                        simplePlayMusic(currentSongList[(currentSongIndex - 1)%currentSongList.length]);
+                                        currentSongIndex =(currentSongIndex - 1)%currentSongList.length;
+                                      }
                                     },
                                     iconSize: 50.0,
                                     color: Colors.grey[700],
@@ -380,9 +414,13 @@ class _SearchingPageState extends State<SearchingPage> {
                                   _buildButton(isPlaying),
                                   IconButton(
                                     onPressed: () {
-                                      simplePlayMusic(
-                                        "67d4114d07125eb8445aa9d1",
-                                      );
+                                      // simplePlayMusic(
+                                      //   "67d4114d07125eb8445aa9d1",
+                                      // );
+                                      if(currentSongList != []){
+                                        simplePlayMusic(currentSongList[(currentSongIndex + 1)%currentSongList.length]);
+                                        currentSongIndex =(currentSongIndex + 1)%currentSongList.length;
+                                      }
                                     },
                                     iconSize: 50.0,
                                     color: Colors.grey[700],
@@ -405,11 +443,97 @@ class _SearchingPageState extends State<SearchingPage> {
     );
   }
 
+  Widget _buildSearchHistoryButton() {
+    return FutureBuilder(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          List<dynamic> searchHistory = snapshot.data['search_history'];
+          List<Widget> buttons = [];
+          for (int i = 0; i < searchHistory.length; i++) {
+            ElevatedButton button = ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => SearchResult(
+                          searchText: searchHistory[i],
+                          updateSearchHistory: _updateSearchHistory,
+                        ),
+                  ),
+                );
+              },
+              child: Text(searchHistory[i]),
+            );
+            buttons.add(button);
+            buttons.add(SizedBox(width: 10));
+          }
+          return Wrap(
+            direction: Axis.horizontal,
+            alignment: WrapAlignment.start,
+            children: buttons,
+          );
+        } else if (snapshot.hasError) {
+          return const Center(child: Text("错误！请重试！"));
+        } else {
+          return const Center(child: CircularProgressIndicator());
+        }
+      },
+    );
+  }
+
+  void _deleteSearchHistory() async {
+    await HttpReq().deleteSearchHistory(); // 假设这是删除搜索历史的 API 调用
+    setState(() {
+      _future = HttpReq().getSearchHistory(); // 删除后重新请求最新的搜索历史
+    });
+  }
+
+  // 处理返回时更新数据
+  void _updateSearchHistory() {
+    setState(() {
+      _future = HttpReq().getSearchHistory(); // 重新请求最新的搜索历史
+    });
+  }
+
+  Widget _buildBody() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 20),
+        Row(
+          children: [
+            SizedBox(width: 20),
+            Text(
+              "搜索历史",
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+            IconButton(
+              onPressed: () {
+                _deleteSearchHistory();
+              },
+              icon: Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+        SizedBox(height: 20),
+        //后边需要放按钮
+        Container(
+          margin: EdgeInsets.symmetric(horizontal: 20.0),
+          child: _buildSearchHistoryButton(),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: _buildAppBar(),
       endDrawer: _buildDrawer(),
+      body: _buildBody(),
     );
   }
 }
