@@ -4,8 +4,8 @@ import 'discovery.dart';
 
 class HttpReq {
   // static const String URL = 'http://192.168.1.101:8000';
-  // static const String URL = 'http://10.0.2.2:8000';
-  static const String URL = 'http://lancelotshire.me:8000';
+  static const String URL = 'http://10.0.2.2:8000';
+  // static const String URL = 'http://lancelotshire.me:8000';
 
   Future test() async {
     var url = Uri.parse('$URL/');

@@ -1,5 +1,6 @@
 import random
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import datetime
 import bcrypt
@@ -15,6 +16,19 @@ import time
 from songlistDAO import SonglistDAO
 
 app = FastAPI()
+
+# 允许前端的地址访问API
+origins = [
+    "*"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # 允许的源
+    allow_credentials=True,
+    allow_methods=["*"],    # 允许所有方法
+    allow_headers=["*"],    # 允许所有请求头
+)
 
 @app.get("/")
 def read_root():
@@ -165,7 +179,7 @@ def getPlayHistory(id:str):
     user = UserDAO().get_user_info(ObjectId(id))
     if user:
         return user["play_history"]
-    return {"error": "Not found"}
+    return []
 
 class PlayHistory(BaseModel):
     user_id: str
@@ -241,6 +255,76 @@ def login(user: UserRegister):
             return {"message": "Incorrect password", "code": 1}
     else:
         return {"message": "Account not found", "code": 2}
+    
+@app.get("/getAllUsers")
+def getAllUsers():
+    users = UserDAO().find_users()
+    print(users)
+    for user in users:
+        user["_id"] = str(user["_id"])
+        user["songlist"] = [str(x) for x in user["songlist"]] if user["songlist"] else []
+        user["like"] = [str(x) for x in user["like"]] if user["like"] else []
+        user["play_history"] = [str(x) for x in user["play_history"]] if user["play_history"] else []
+    return users
+
+@app.delete("/deleteUser/{id}")
+def deleteUser(id:str):
+    UserDAO().delete_user(ObjectId(id))
+    return {"message": "User deleted successfully"}
+
+@app.get("/getAllSongs")
+def getAllSongs():
+    songs = InfoDAO().get_all_songs()
+    for song in songs:
+        song["_id"] = str(song["_id"])
+    return songs
+
+class UpdateSongInfo(BaseModel):
+    id: str
+    song_name: str = None
+    singer: str = None
+    album: str = None
+    translation: str = None
+    description: str = None
+    url: str = None
+    picture: str = None
+@app.put("/updateSongInfo")
+def updateSongInfo(song: UpdateSongInfo):
+    id = song.id
+    song_name = song.song_name
+    singer = song.singer
+    album = song.album
+    translation = song.translation
+    description = song.description
+    url = song.url
+    picture = song.picture
+    InfoDAO().update_song_info(id, song_name, singer, album, description, translation, url, picture)
+    return {"message": "Song info updated successfully"}
+
+class AddSong(BaseModel):
+    song_name: str = ""
+    singer: str = ""
+    album: str = ""
+    translation: str = ""
+    description: str = ""
+    url: str = ""
+    picture: str = ""
+@app.post("/addSong")
+def addSong(song: AddSong):
+    song_name = song.song_name
+    singer = song.singer
+    album = song.album
+    translation = song.translation
+    description = song.description
+    url = song.url
+    picture = song.picture
+    InfoDAO().add_song(song_name, singer, album, description, translation, url, picture)
+    return {"message": "Song info added successfully"}
+
+@app.delete("/deleteSong/{id}")
+def deleteSong(id:str):
+    InfoDAO().delete_song(id)
+    return {"message": "Song deleted successfully"}
 
 
 if __name__ == "__main__":

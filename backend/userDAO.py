@@ -74,4 +74,3 @@ class UserDAO(BaseDAO):
             "search_history": [],
             "play_history": []
         })
-    

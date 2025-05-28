@@ -48,7 +48,7 @@ class InfoDAO(BaseDAO):
         result = self.find_one({"_id": ObjectId(id)})
         if result:
             result["_id"] = str(result["_id"])
-            result["lyrics_metadata"],result["lyrics"] = lyrics.getLyrics(f"{result["song_name"]}{result["singer"]}")
+            result["lyrics_metadata"],result["lyrics"] = lyrics.getLyrics(f'{result["song_name"]}{result["singer"]}')
             return result
         return {"error": "Not found"}
     
@@ -86,4 +86,35 @@ class InfoDAO(BaseDAO):
         for songInfo in songInfoList:
             songlist.append(str(songInfo["_id"]))
         return songlist
-    #歌曲只能查，添加/修改/删除歌曲需要我在后台手动添加
+    
+    def get_all_songs(self):
+        result = self.find_many({})
+        for res in result:
+            res["_id"] = str(res["_id"])
+        return result
+    
+    def update_song_info(self, id: str, song_name: str, singer: str, album: str, description: str, translation: str, url: str, picture: str):
+        data = {
+            "song_name": song_name,
+            "singer": singer,
+            "album": album,
+            "description": description,
+            "translation": translation,
+            "url": url,
+            "picture": picture
+        }
+        return self.update_one({"_id": ObjectId(id)}, data)
+    
+    def add_song(self, song_name: str, singer: str, album: str, description: str, translation: str, url: str, picture: str):
+        return self.insert_one({
+            "song_name": song_name,
+            "singer": singer,
+            "album": album,
+            "description": description,
+            "translation": translation,
+            "url": url,
+            "picture": picture
+        })
+    
+    def delete_song(self, id: str):
+        return self.delete_one({"_id": ObjectId(id)})
